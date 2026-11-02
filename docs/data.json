@@ -1,10 +1,1 @@
-{
-  "schema_version": 1,
-  "updated_at": null,
-  "source": "DEX Screener public API",
-  "notes": [
-    "entry_mc is the first observed market cap after detection, not a guaranteed exact payment-time market cap.",
-    "Only post-entry snapshots contribute to post-entry high and low."
-  ],
-  "tokens": {}
-}
+{"schema_version":1,"updated_at":"2026-11-02T21:24:32Z","source":"DEX Screener public API","notes":["entry_mc is the first observed market cap after detection, not a guaranteed exact payment-time market cap.","Only post-entry snapshots contribute to post-entry high and low."],"tokens":{},"last_run":{"at":"2026-11-02T21:24:32Z","profile_candidates":30,"tokens_stored":0,"tokens_with_entry":0}}
