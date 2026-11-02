@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1020">
+  <title>DEX PAID TRACKER — Solana</title>
+  <style>
+    :root{color-scheme:dark;--bg:#090e1b;--panel:#111a2d;--panel2:#17223a;--line:#263653;--muted:#9aa9c2;--text:#edf3ff;--green:#39d98a;--red:#ff6b78;--blue:#80aaff;--yellow:#f4c76b}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#152342 0,#090e1b 55%);color:var(--text);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+    .wrap{max-width:1250px;margin:auto;padding:28px 18px 60px}.top{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;margin-bottom:22px}
+    h1{font-size:clamp(23px,4vw,34px);margin:0;letter-spacing:-.04em}.sub{color:var(--muted);margin-top:5px}.pill{border:1px solid #286348;color:#8af0b9;background:#123324;padding:6px 10px;border-radius:999px;font-size:12px}
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}.card{background:linear-gradient(145deg,var(--panel),#0e1729);border:1px solid var(--line);border-radius:15px;padding:16px;min-width:0}.label{color:var(--muted);font-size:12px}.value{font-size:27px;font-weight:750;letter-spacing:-.04em;margin-top:4px}.hint{font-size:11px;color:var(--muted);margin-top:3px}
+    .section{margin-top:18px}.section h2{font-size:16px;margin:0 0 12px}.notice{background:#2a2415;border:1px solid #655126;color:#f6dfaa;border-radius:12px;padding:13px 15px;margin:15px 0;font-size:12px}
+    .toolbar{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}.toolbar input,.toolbar select{background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--text);padding:10px}
+    .tablewrap{overflow:auto;border:1px solid var(--line);border-radius:13px;background:var(--panel)}table{width:100%;border-collapse:collapse;min-width:930px}th,td{text-align:left;padding:11px 12px;border-bottom:1px solid #202e48;white-space:nowrap}th{font-size:11px;color:var(--muted);font-weight:600;background:#121d32;position:sticky;top:0}td{font-size:12px}tr:last-child td{border-bottom:0}.token{font-weight:700}.muted{color:var(--muted)}.positive{color:var(--green)}.negative{color:var(--red)}.warn{color:var(--yellow)}a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
+    .barrow{display:grid;grid-template-columns:85px 1fr 45px;align-items:center;gap:10px;margin:10px 0}.track{height:9px;background:#263653;border-radius:99px;overflow:hidden}.fill{height:100%;background:linear-gradient(90deg,#4d8dff,#39d98a);border-radius:99px}.empty{padding:30px;text-align:center;color:var(--muted)}.foot{color:var(--muted);font-size:11px;margin-top:22px}
+    @media(max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.value{font-size:23px}.wrap{padding:20px 12px 40px}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><h1>DEX PAID TRACKER</h1><div class="sub">Observatoire Solana · DEX Screener · analyse après paiement</div></div>
+    <div class="pill" id="status">Chargement des données…</div>
+  </div>
+  <div class="notice"><b>Important — données de recherche, pas un backtest d'exécution.</b> L'entrée correspond au premier market cap observé après détection, pas nécessairement au market cap exact à la seconde du paiement. Les ATH/ATL sont calculés uniquement après cette entrée. Les snapshots toutes les 15 minutes peuvent manquer des mouvements rapides. Aucun achat/vente n'est effectué.</div>
+  <div class="grid">
+    <div class="card"><div class="label">Tokens enregistrés</div><div class="value" id="count">—</div><div class="hint">Depuis activation du tracker</div></div>
+    <div class="card"><div class="label">Entrées observées</div><div class="value" id="entries">—</div><div class="hint">Market cap disponible</div></div>
+    <div class="card"><div class="label">Échantillon proche du signal</div><div class="value" id="quality">—</div><div class="hint">Détection ≤ 30 minutes</div></div>
+    <div class="card"><div class="label">Dernière mise à jour</div><div class="value" style="font-size:17px" id="updated">—</div><div class="hint">Collecte GitHub Actions</div></div>
+  </div>
+  <div class="section card">
+    <h2>Seuils observés après l'entrée</h2>
+    <div class="hint">Part des tokens ayant atteint au moins un snapshot au-dessus du seuil. Les entrées tardives sont exclues de ce résumé.</div>
+    <div id="thresholds" class="empty">En attente de données…</div>
+  </div>
+  <div class="section card">
+    <h2>Tokens détectés</h2>
+    <div class="toolbar">
+      <input id="search" placeholder="Rechercher un token ou une adresse…" aria-label="Rechercher">
+      <select id="qualityFilter"><option value="all">Toutes les qualités</option><option value="near_signal">Proche du signal (≤30 min)</option><option value="late">Détection tardive</option><option value="pending">En attente de market cap</option></select>
+      <select id="sort"><option value="newest">Plus récents</option><option value="gain">Plus forte hausse observée</option><option value="loss">Plus forte baisse observée</option></select>
+    </div>
+    <div class="tablewrap"><table><thead><tr><th>Token</th><th>Paiement DEX</th><th>Retard détection</th><th>MC entrée observée</th><th>MC actuelle</th><th>Max après entrée</th><th>Perf. max</th><th>Perf. min</th><th>Seuils</th><th>État</th></tr></thead><tbody id="rows"><tr><td colspan="10" class="empty">Chargement…</td></tr></tbody></table></div>
+  </div>
+  <div class="foot">Source : API publique DEX Screener. Une market cap absente n'est pas remplacée par la FDV. Les résultats historiques incomplets ne sont pas assimilés à des trades gagnants ou perdants. Ce site n'est pas un conseil financier.</div>
+</div>
+<script>
+const fmtUSD = n => n == null ? "—" : new Intl.NumberFormat("fr-FR",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(n);
+const fmtPct = n => n == null ? "—" : (n>0?"+":"")+n.toFixed(1)+" %";
+const dateFmt = s => {if(!s)return "—";const d=new Date(s);return isNaN(d)?"—":d.toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});};
+let allTokens=[];
+function hit(t,p){return t.max_gain_pct_observed!=null && t.max_gain_pct_observed>=p;}
+function renderThresholds(tokens){
+  const eligible=tokens.filter(t=>t.entry_quality==="near_signal"&&t.entry_mc);
+  const el=document.getElementById("thresholds");
+  if(!eligible.length){el.innerHTML='<div class="empty">Pas encore assez de tokens avec une entrée proche du signal. Le tracker doit accumuler des observations.</div>';return;}
+  el.innerHTML=[15,30,40,80,100].map(p=>{
+    const n=eligible.filter(t=>hit(t,p)).length, pct=n/eligible.length*100;
+    return `<div class="barrow"><b>+${p}%</b><div class="track"><div class="fill" style="width:${pct}%"></div></div><span>${pct.toFixed(0)}%</span></div><div class="hint" style="margin:-6px 0 8px 95px">${n}/${eligible.length} tokens ont montré ce seuil</div>`;
+  }).join("");
+}
+function renderRows(){
+  const q=document.getElementById("search").value.toLowerCase();
+  const qual=document.getElementById("qualityFilter").value;
+  const sort=document.getElementById("sort").value;
+  let rows=allTokens.filter(t=>{
+    const match=(t.symbol||"").toLowerCase().includes(q)||(t.name||"").toLowerCase().includes(q)||(t.address||"").toLowerCase().includes(q);
+    return match&&(qual==="all"||t.entry_quality===qual||(qual==="pending"&&!t.entry_mc));
+  });
+  rows.sort((a,b)=>sort==="gain"?(b.max_gain_pct_observed??-999)-(a.max_gain_pct_observed??-999):sort==="loss"?(a.max_loss_pct_observed??999)-(b.max_loss_pct_observed??999):(b.payment_timestamp||"").localeCompare(a.payment_timestamp||""));
+  document.getElementById("rows").innerHTML=rows.length?rows.map(t=>{
+    const perf=t.max_gain_pct_observed, loss=t.max_loss_pct_observed;
+    const tags=[15,30,40,80].filter(p=>hit(t,p)).map(p=>"+"+p).join(" · ")||"—";
+    const quality=t.entry_quality==="near_signal"?'<span class="positive">Proche</span>':t.entry_quality==="late"?'<span class="warn">RETARD</span>':'<span class="muted">En attente</span>';
+    const state=t.status==="completed_24h"?"24 h terminées":t.status==="tracking"?"Suivi actif":"En attente";
+    const url=t.pair_url||t.profile_url||`https://dexscreener.com/solana/${t.address}`;
+    return `<tr><td><a href="${url}" target="_blank" rel="noopener" class="token">${(t.symbol||t.name||t.address.slice(0,8))}</a><div class="muted">${t.address.slice(0,6)}…${t.address.slice(-5)}</div></td><td>${dateFmt(t.payment_timestamp)}</td><td>${t.detection_delay_minutes==null?"—":t.detection_delay_minutes.toFixed(0)+" min"}</td><td>${fmtUSD(t.entry_mc)}<div>${quality}</div></td><td>${fmtUSD(t.last_mc)}</td><td>${fmtUSD(t.max_mc_post_entry)}</td><td class="${perf>=0?"positive":"negative"}">${fmtPct(perf)}</td><td class="${loss>=0?"positive":"negative"}">${fmtPct(loss)}</td><td>${tags}</td><td>${state}</td></tr>`;
+  }).join(""):'<tr><td colspan="10" class="empty">Aucun token correspondant.</td></tr>';
+}
+async function init(){
+ try{
+  const res=await fetch("./data.json?ts="+Date.now(),{cache:"no-store"});
+  if(!res.ok)throw new Error("Fichier data.json indisponible");
+  const data=await res.json(); allTokens=Object.values(data.tokens||{});
+  const entries=allTokens.filter(t=>t.entry_mc);
+  const near=entries.filter(t=>t.entry_quality==="near_signal");
+  document.getElementById("count").textContent=allTokens.length;
+  document.getElementById("entries").textContent=entries.length;
+  document.getElementById("quality").textContent=near.length;
+  document.getElementById("updated").textContent=dateFmt(data.updated_at);
+  document.getElementById("status").textContent="Données chargées";
+  renderThresholds(near);renderRows();
+ }catch(e){
+  document.getElementById("status").textContent="Données indisponibles";
+  document.getElementById("rows").innerHTML='<tr><td colspan="10" class="empty">Le collecteur n’a peut-être pas encore effectué son premier passage. Vérifie GitHub Actions puis relance.</td></tr>';
+  document.getElementById("thresholds").textContent="Aucune donnée disponible.";
+ }
+}
+["search","qualityFilter","sort"].forEach(id=>document.getElementById(id).addEventListener("input",renderRows));
+init();
+</script>
+</body>
+</html>
