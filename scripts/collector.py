@@ -82,16 +82,27 @@ def load_data():
 
 def get_order_payment(token_address: str):
     payload = api_get(f"/orders/v1/{CHAIN}/{urllib.parse.quote(token_address, safe='')}")
-    if not isinstance(payload, list):
+
+    # L'API peut renvoyer une liste ou un objet contenant "orders".
+    if isinstance(payload, dict):
+        orders = payload.get("orders", [])
+    elif isinstance(payload, list):
+        orders = payload
+    else:
         return None
+
+    if not isinstance(orders, list):
+        return None
+
     valid = []
-    for order in payload:
+    for order in orders:
         if not isinstance(order, dict):
             continue
         if order.get("type") == "tokenProfile" and order.get("status") == "approved":
             ts = parse_timestamp(order.get("paymentTimestamp"))
             if ts:
                 valid.append(ts)
+
     return max(valid) if valid else None
 
 
